@@ -1,0 +1,7 @@
+To fetch Reconciliation Reports from Mercado Pago into Google Sheets using Google Apps Script.
+
+https://www.mercadopago.com.mx/developers/es/guides/manage-account/reconciliation-reports/
+
+Requires an access-token.
+
+Found under "Credentials". See Wiki.
