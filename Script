@@ -101,7 +101,7 @@ function checkReport(type) {
   
   var o = [];
   var downloadDate;
-  for ( var r = 0; r < data.length; r++) {
+  for (var r = 0; r < data.length; r++) {
     downloadDate = data[r].download_date;
     
     if (downloadDate == null) {
@@ -130,18 +130,7 @@ function checkReport(type) {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 */
 
-function fetchReport(type, fileName) {
-  
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var col = ss.getActiveRange().getColumn();
-  var fileName = ss.getActiveCell().getValue();
-  
-  if (ss.getName() !== "Download" || col !== 1) {
-    SpreadsheetApp.getUi().alert("Please select a file name to download");
-    return;
-  }
-  
-  var folder = DriveApp.getFolderById(folderID); // Where the report will be saved
+function fetchReport(type, fileName, folder) {
   
   if (type == "Bank") {
     
