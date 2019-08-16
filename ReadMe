@@ -5,3 +5,10 @@ https://www.mercadopago.com.mx/developers/es/guides/manage-account/reconciliatio
 Requires an access-token.
 
 Found under "Credentials". See https://imgur.com/yZahXV7.
+
+The API creates reports asynchronously.
+
+Steps to download report:
+1. Send request to create report.
+2. Check is report is ready.
+3. Download report.
