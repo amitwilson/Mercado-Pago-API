@@ -1,0 +1,197 @@
+/*
+//////////////////////////////////////////////////////////////////////////////////////////////////
+.  _____         _                
+. |_   _|  ___  | |__  ___   _ _  
+.   | |   / _ \ | / / / -_) | ' \ 
+.   |_|   \___/ |_\_\ \___| |_||_|                               
+//////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+
+
+var token = 'ACCESS_TOKEN';
+
+
+
+/*
+//////////////////////////////////////////////////////////////////////////////////////////////////
+.   ___                      _             ___                            _   
+.  / __|  _ _   ___   __ _  | |_   ___    | _ \  ___   _ __   ___   _ _  | |_ 
+. | (__  | '_| / -_) / _` | |  _| / -_)   |   / / -_) | '_ \ / _ \ | '_| |  _|
+.  \___| |_|   \___| \__,_|  \__| \___|   |_|_\ \___| | .__/ \___/ |_|    \__|
+.                                                     |_|                     
+//////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+function createReport(type, startDate, endDate) {
+
+  if (type == "Bank") {
+    
+    var url = "https://api.mercadopago.com/v1/account/bank_report?access_token=" + token;
+    
+  } else if (type == "Sett") {
+    
+    url = "https://api.mercadopago.com/v1/account/settlement_report?access_token=" + token;
+    
+  } else {
+    
+    SpreadsheetApp.getUi().alert("Error in type of report. Should be 'Bank' or 'Settlement'. Terminating.");
+    return;
+    
+  }
+  
+  startDate = Utilities.formatDate(startDate, Session.getScriptTimeZone(), "yyyy-MM-dd'T'00:00:00'Z'");
+  endDate = Utilities.formatDate(endDate, Session.getScriptTimeZone(), "yyyy-MM-dd'T'00:00:00'Z'");
+  
+  var body = { 
+    "begin_date": startDate,
+    "end_date": endDate
+  };
+  
+  var payload = JSON.stringify(body);
+  
+  var options = {
+    'method' : 'post',
+    'payload' : payload
+  };
+  
+  var r = UrlFetchApp.fetch(url, options);
+  
+  if ( r.getResponseCode() == 202) {
+    SpreadsheetApp.getUi().alert("Report creation request successful");
+  } else {
+    var json = r.getContentText();
+    var data = JSON.parse(json);
+    ss.getSheetByName("Log").appendRow([new Date(), data]);
+    SpreadsheetApp.getUi().alert("Something went wrong. Check log and try again.");
+  }
+}
+
+
+/*
+//////////////////////////////////////////////////////////////////////////////////////////////////
+.   ___   _                 _       ___                            _   
+.  / __| | |_    ___   __  | |__   | _ \  ___   _ __   ___   _ _  | |_ 
+. | (__  | ' \  / -_) / _| | / /   |   / / -_) | '_ \ / _ \ | '_| |  _|
+.  \___| |_||_| \___| \__| |_\_\   |_|_\ \___| | .__/ \___/ |_|    \__|
+.                                              |_|                     
+//////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+function checkReport(type) {
+  
+  if (type == "Bank") {
+    
+    var url = "https://api.mercadopago.com/v1/account/bank_report/list?access_token=" + token;
+    
+  } else if (type == "Sett") {
+    
+    url = "https://api.mercadopago.com/v1/account/settlement_report/list?access_token=" + token;
+    
+  } else {
+    
+    SpreadsheetApp.getUi().alert("Error in type of report. Should be 'Bank' or 'Settlement'. Terminating.");
+    return;
+    
+  }
+  
+  var response = UrlFetchApp.fetch(url);
+  var json = response.getContentText();
+  var data = JSON.parse(json);
+  
+  var o = [];
+  var downloadDate;
+  for ( var r = 0; r < data.length; r++) {
+    downloadDate = data[r].download_date;
+    
+    if (downloadDate == null) {
+      downloadDate = "Not downloaded yet";
+    }
+    
+    o.push([data[r].file_name,
+            data[r].begin_date,
+            data[r].end_date,
+            downloadDate]);
+  }
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var downloadSheet = ss.getSheetByName("Download");
+  downloadSheet.getRange("A2:D").clearContent();
+  downloadSheet.getRange(2, 1, o.length, o[0].length).setValues(o);
+}
+
+/*
+//////////////////////////////////////////////////////////////////////////////////////////////////
+.   ___         _       ___                            _   
+.  / __|  ___  | |_    | _ \  ___   _ __   ___   _ _  | |_ 
+. | (_ | / -_) |  _|   |   / / -_) | '_ \ / _ \ | '_| |  _|
+.  \___| \___|  \__|   |_|_\ \___| | .__/ \___/ |_|    \__|
+.                                  |_|                     
+//////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+function fetchReport(type, fileName) {
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var col = ss.getActiveRange().getColumn();
+  var fileName = ss.getActiveCell().getValue();
+  
+  if (ss.getName() !== "Download" || col !== 1) {
+    SpreadsheetApp.getUi().alert("Please select a file name to download");
+    return;
+  }
+  
+  var folder = DriveApp.getFolderById(folderID); // Where the report will be saved
+  
+  if (type == "Bank") {
+    
+    var baseUrl = "https://api.mercadopago.com/v1/account/bank_report/";
+    
+  } else if (type == "Sett") {
+    
+    baseUrl = "https://api.mercadopago.com/v1/account/settlement_report/";
+    
+  } else {
+    
+    SpreadsheetApp.getUi().alert("Error in type of report. Should be 'Bank' or 'Settlement'. Terminating.");
+    return;
+    
+  }
+  
+  var fileUrl = baseUrl + fileName + "?access_token=" + token;
+  
+  var file = UrlFetchApp.fetch(fileUrl);
+  
+  var child = DriveApp.createFile(fileName, file, MimeType.CSV);
+  
+  folder.addFile(child);
+  
+  DriveApp.getRootFolder().removeFile(child);
+  
+  var url = 'https://drive.google.com/drive/u/0/folders/' + folderID;
+  
+  openUrl_(url);
+  
+}
+
+function openUrl_(url){
+  
+  // From: https://stackoverflow.com/questions/10744760/google-apps-script-to-open-a-url
+  
+  var html = HtmlService.createHtmlOutput('<html><script>' +
+                                          'window.close = function(){window.setTimeout(function(){google.script.host.close()},9)};' +
+                                          'var a = document.createElement("a"); a.href="'+url+'"; a.target="_blank";' +
+                                          'if(document.createEvent){' +
+                                          '  var event=document.createEvent("MouseEvents");' +
+                                          '  if(navigator.userAgent.toLowerCase().indexOf("firefox")>-1){window.document.body.append(a)}' +
+                                          '  event.initEvent("click",true,true); a.dispatchEvent(event);' +
+                                          '}else{ a.click() }' +
+                                          'close();' +
+                                          '</script>' +
+                                          // Offer URL as clickable link in case above code fails.
+                                          '<body style="word-break:break-word;font-family:sans-serif;">Failed to open automatically. <a href="'+url+'" target="_blank" onclick="window.close()">Click here to proceed</a>.</body>' +
+                                          '<script>google.script.host.setHeight(40);google.script.host.setWidth(410)</script>' +
+                                          '</html>')
+  .setWidth( 90 ).setHeight( 1 );
+  SpreadsheetApp.getUi().showModalDialog( html, "Opening ..." );
+}
